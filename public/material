@@ -1,0 +1,392 @@
+Doc 1,  Doc 2
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+### Doc 1
+
+Imports, Class & Fields, Constructor: Instantiate + Frame, Assemble Panels, Events,
+File Write, File Read (optional), Main
+
+
+
+
+
+
+
+
+
+
+
+
+```java
+// Imports
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JTextField;
+import javax.swing.JTextArea;
+import javax.swing.JButton;
+import javax.swing.JCheckBox;
+import javax.swing.JRadioButton;
+import javax.swing.ButtonGroup;
+import javax.swing.JComboBox;
+import javax.swing.JMenu;
+import javax.swing.JMenuBar;
+import javax.swing.JMenuItem;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JFileChooser;
+import javax.swing.JSlider;
+import javax.swing.JSpinner;
+import javax.swing.JScrollBar;
+import javax.swing.JPasswordField;
+import javax.swing.JProgressBar;
+import javax.swing.border.LineBorder;
+import javax.swing.border.BevelBorder;
+import javax.swing.border.TitledBorder;
+
+import java.awt.BorderLayout;
+import java.awt.FlowLayout;
+import java.awt.GridLayout;
+import java.awt.Color;
+
+import java.awt.event.ActionListener;
+import java.awt.event.ItemListener;
+import java.awt.event.ChangeListener;
+
+import java.io.File;
+import java.io.FileReader;
+import java.io.BufferedReader;
+import java.io.FileWriter;
+import java.io.BufferedWriter;
+import java.io.PrintWriter;
+
+// Class & Fields
+public class GreetingsGUI extends JFrame {
+    private JPanel namePnl, surnamePnl, inputPnl, textAreaPnl, btnsPnl, headerPnl;
+    private JLabel headingLbl, nameLbl, surnameLbl;
+    private JTextField nameTxtFld, surnameTxtFld;
+    private JTextArea greetingsTxtArea;
+    private JButton greetBtn, clearBtn, exitBtn;
+    private final File dataFile = new File("greetings.txt");
+
+    // Constructor: Instantiate + Frame
+    public GreetingsGUI() {
+        setTitle("Greetings UI");
+        setSize(500, 550);
+        setLayout(new BorderLayout());
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+
+        headingLbl = new JLabel("Greetings App");
+        nameLbl = new JLabel("Name:");
+        surnameLbl = new JLabel("Surname:");
+
+        nameTxtFld = new JTextField(20);
+        surnameTxtFld = new JTextField(20);
+
+        greetingsTxtArea = new JTextArea(12, 36);
+        greetingsTxtArea.setEditable(false);
+
+        greetBtn = new JButton("Greet");
+        clearBtn = new JButton("Clear");
+        exitBtn  = new JButton("Exit");
+
+        headerPnl   = new JPanel(new FlowLayout(FlowLayout.CENTER));
+        namePnl     = new JPanel(new FlowLayout());
+        surnamePnl  = new JPanel(new FlowLayout());
+        inputPnl    = new JPanel(new GridLayout(2,1));
+        textAreaPnl = new JPanel(new BorderLayout());
+        btnsPnl     = new JPanel(new FlowLayout());
+
+        // Assemble Panels
+        headerPnl.add(headingLbl);
+        namePnl.add(nameLbl);      namePnl.add(nameTxtFld);
+        surnamePnl.add(surnameLbl);surnamePnl.add(surnameTxtFld);
+        inputPnl.add(namePnl); inputPnl.add(surnamePnl);
+
+        textAreaPnl.add(new JScrollPane(greetingsTxtArea), BorderLayout.CENTER);
+        btnsPnl.add(greetBtn); btnsPnl.add(clearBtn); btnsPnl.add(exitBtn);
+
+        add(headerPnl, BorderLayout.NORTH);
+        add(inputPnl,  BorderLayout.CENTER);
+        add(textAreaPnl, BorderLayout.EAST);
+        add(btnsPnl,   BorderLayout.SOUTH);
+
+        wireEvents();
+    }
+
+    // Events
+    private void wireEvents() {
+        greetBtn.addActionListener(e -> {
+            String n = nameTxtFld.getText();
+            String s = surnameTxtFld.getText();
+            String msg = "Hello " + n + " " + s;
+            greetingsTxtArea.setText(msg);
+            writeLine(msg);
+        });
+        clearBtn.addActionListener(e -> {
+            nameTxtFld.setText("");
+            surnameTxtFld.setText("");
+            greetingsTxtArea.setText("");
+        });
+        exitBtn.addActionListener(e -> System.exit(0));
+    }
+
+    // File Write
+    private void writeLine(String line) {
+        try (PrintWriter out = new PrintWriter(
+                 new BufferedWriter(new FileWriter(dataFile, true)))) {
+            out.println(line);
+        } catch (Exception ex) { ex.printStackTrace(); }
+    }
+
+    // File Read (optional)
+    private void loadAll() {
+        StringBuilder sb = new StringBuilder();
+        try (BufferedReader br = new BufferedReader(new FileReader(dataFile))) {
+            String line;
+            while((line = br.readLine()) != null) sb.append(line).append("\n");
+        } catch (Exception ex) { ex.printStackTrace(); }
+        greetingsTxtArea.setText(sb.toString());
+    }
+
+    // Main
+    public static void main(String[] args) {
+        javax.swing.SwingUtilities.invokeLater(() -> new GreetingsGUI().setVisible(true));
+    }
+}
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+### Doc 2
+
+Imports, Class & Fields, Constructor, Events, File Write, File Read,
+Main, Collections Demo, Generic Class + Method, Theory Nuggets (marker candy)
+
+```java
+// Imports
+import javax.swing.*;
+import javax.swing.border.*;
+import java.awt.*;
+import java.awt.event.*;
+import java.io.*;
+import java.util.*;
+
+// Class & Fields
+public class GreetingsGUI extends JFrame {
+    private JPanel namePnl, surnamePnl, inputPnl, textAreaPnl, btnsPnl, headerPnl;
+    private JLabel headingLbl, nameLbl, surnameLbl;
+    private JTextField nameTxtFld, surnameTxtFld;
+    private JTextArea greetingsTxtArea;
+    private JButton greetBtn, clearBtn, exitBtn;
+    private final File dataFile = new File("greetings.txt");
+
+    // Constructor
+    public GreetingsGUI() {
+        setTitle("Greetings UI");
+        setSize(500, 550);
+        setLayout(new BorderLayout());
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+
+        headingLbl = new JLabel("Greetings App");
+        nameLbl = new JLabel("Name:");
+        surnameLbl = new JLabel("Surname:");
+        nameTxtFld = new JTextField(20);
+        surnameTxtFld = new JTextField(20);
+
+        greetingsTxtArea = new JTextArea(12, 36);
+        greetingsTxtArea.setEditable(false);
+
+        greetBtn = new JButton("Greet");
+        clearBtn = new JButton("Clear");
+        exitBtn  = new JButton("Exit");
+
+        headerPnl   = new JPanel(new FlowLayout(FlowLayout.CENTER));
+        namePnl     = new JPanel(new FlowLayout());
+        surnamePnl  = new JPanel(new FlowLayout());
+        inputPnl    = new JPanel(new GridLayout(2,1));
+        textAreaPnl = new JPanel(new BorderLayout());
+        btnsPnl     = new JPanel(new FlowLayout());
+
+        headerPnl.add(headingLbl);
+        namePnl.add(nameLbl); namePnl.add(nameTxtFld);
+        surnamePnl.add(surnameLbl); surnamePnl.add(surnameTxtFld);
+        inputPnl.add(namePnl); inputPnl.add(surnamePnl);
+
+        textAreaPnl.add(new JScrollPane(greetingsTxtArea), BorderLayout.CENTER);
+        btnsPnl.add(greetBtn); btnsPnl.add(clearBtn); btnsPnl.add(exitBtn);
+
+        add(headerPnl, BorderLayout.NORTH);
+        add(inputPnl, BorderLayout.CENTER);
+        add(textAreaPnl, BorderLayout.EAST);
+        add(btnsPnl, BorderLayout.SOUTH);
+
+        wireEvents();
+    }
+
+    // Events
+    private void wireEvents() {
+        greetBtn.addActionListener(e -> {
+            String n = nameTxtFld.getText();
+            String s = surnameTxtFld.getText();
+            String msg = "Hello " + n + " " + s;
+            greetingsTxtArea.setText(msg);
+            writeLine(msg);
+        });
+        clearBtn.addActionListener(e -> {
+            nameTxtFld.setText("");
+            surnameTxtFld.setText("");
+            greetingsTxtArea.setText("");
+        });
+        exitBtn.addActionListener(e -> System.exit(0));
+    }
+
+    // File Write
+    private void writeLine(String line) {
+        try (PrintWriter out = new PrintWriter(
+                new BufferedWriter(new FileWriter(dataFile, true)))) {
+            out.println(line);
+        } catch (Exception ex) { ex.printStackTrace(); }
+    }
+
+    // File Read
+    private void loadAll() {
+        StringBuilder sb = new StringBuilder();
+        try (BufferedReader br = new BufferedReader(new FileReader(dataFile))) {
+            String line;
+            while((line = br.readLine()) != null) sb.append(line).append("\n");
+        } catch (Exception ex) { ex.printStackTrace(); }
+        greetingsTxtArea.setText(sb.toString());
+    }
+
+    // Main
+    public static void main(String[] args) {
+        javax.swing.SwingUtilities.invokeLater(() -> new GreetingsGUI().setVisible(true));
+        CollectionsDemo.run();
+    }
+}
+
+// Collections Demo
+class CollectionsDemo {
+    public static void run() {
+        List<String> names = new ArrayList<>();
+        names.add("Alice"); names.add("Bob"); names.add("Alice");
+        System.out.println("ArrayList: " + names);
+
+        Set<Integer> nums = new HashSet<>();
+        nums.add(10); nums.add(20); nums.add(10);
+        System.out.println("Set size: " + nums.size());
+
+        Map<Integer, String> map = new HashMap<>();
+        map.put(1,"One"); map.put(2,"Two"); map.put(1,"Uno");
+        System.out.println("Map key 1 = " + map.get(1));
+
+        Queue<String> q = new LinkedList<>();
+        q.add("A"); q.add("B"); q.add("C");
+        System.out.println(q.remove());
+        System.out.println(q.peek());
+
+        Stack<String> st = new Stack<>();
+        st.push("X"); st.push("Y");
+        System.out.println(st.pop());
+
+        Box<Integer> b = new Box<>();
+        b.set(42);
+        System.out.println("Boxed value: " + b.get());
+    }
+}
+
+// Generic Class + Method
+class Box<T> {
+    private T value;
+    public void set(T v){ this.value = v; }
+    public T get(){ return value; }
+}
+
+class GenericUtils {
+    public static <T> void printAll(List<T> list) {
+        for (T item : list) System.out.println(item);
+    }
+}
+
+// Theory Nuggets (marker candy)
+// Swing GUI: GUI = event-driven; ActionListener handles button clicks; ButtonGroup makes radio buttons exclusive; JTextField.setEditable(false) stops user edits but allows programmatic changes.
+// File I/O: createNewFile() creates empty file, mkdir() makes a directory; PrintWriter overwrites existing files unless true is passed for append.
+// Collections:
+// ArrayList → ordered, allows duplicates.
+// Set → no duplicates.
+// Map → unique keys, overwrites values.
+// Queue → FIFO (remove(), peek()).
+// Stack → LIFO (push(), pop()).
+// Generics:
+// Reusability, type safety, no casting.
+// Not for runtime optimization (trick option).
+```
