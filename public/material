@@ -1,5 +1,233 @@
-Doc 1,  Doc 2
 
+Database
+
+
+All data is stored in a single table Books.
+
+SQL Setup (bookstore.sql)
+-- Create database: BookStore
+-- Create table
+CREATE TABLE Books (
+    id INT PRIMARY KEY,
+    title VARCHAR(100),
+    author VARCHAR(50),
+    price DOUBLE
+);
+
+-- Insert sample data
+INSERT INTO Books VALUES (1, 'The Alchemist', 'Paulo Coelho', 150.0);
+INSERT INTO Books VALUES (2, '1984', 'George Orwell', 200.0);
+INSERT INTO Books VALUES (3, 'Clean Code', 'Robert Martin', 350.0);
+INSERT INTO Books VALUES (4, 'The Pragmatic Programmer', 'Andy Hunt', 400.0);
+INSERT INTO Books VALUES (5, 'Harry Potter', 'J.K. Rowling', 300.0);
+
+Save this as bookstore.sql and run it in NetBeans using Derby.
+
+Java Skeleton
+import java.sql.*;
+import java.util.Scanner;
+
+public class BookStoreApp {
+    public static void main(String[] args) {
+        String dbURL = "jdbc:derby://localhost:1527/BookStore"; // Modify if needed
+
+        Connection conn = null;
+        Statement stmt = null;
+        ResultSet rs = null;
+
+        Scanner scanner = new Scanner(System.in);
+
+        try {
+            // Connect to database
+            conn = DriverManager.getConnection(dbURL);
+            stmt = conn.createStatement();
+
+            boolean running = true;
+
+            while (running) {
+                System.out.println("Menu:");
+                System.out.println("1. List all books");
+                System.out.println("2. Most expensive book");
+                System.out.println("3. Total value of books");
+                System.out.println("4. Exit");
+                System.out.print("Choose an option: ");
+
+                int choice = scanner.nextInt();
+                scanner.nextLine(); // consume newline
+
+                // Execute the query to get all books
+                rs = stmt.executeQuery("SELECT * FROM Books");
+
+                switch (choice) {
+                    case 1:
+                        listAllBooks(rs);
+                        break;
+                    case 2:
+                        findMostExpensiveBook(rs);
+                        break;
+                    case 3:
+                        calculateTotalValue(rs);
+                        break;
+                    case 4:
+                        running = false;
+                        System.out.println("Exiting...");
+                        break;
+                    default:
+                        System.out.println("Invalid choice.");
+                }
+                System.out.println();
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            try {
+                if (rs != null) rs.close();
+                if (stmt != null) stmt.close();
+                if (conn != null) conn.close();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+        scanner.close();
+    }
+
+    private static void listAllBooks(ResultSet rs) throws SQLException {
+        System.out.println("Books in Inventory:");
+        while (rs.next()) {
+            System.out.println(rs.getInt("id") + ": " + rs.getString("title") + " by " + rs.getString("author") + " - R" + rs.getDouble("price"));
+        }
+    }
+
+    private static void findMostExpensiveBook(ResultSet rs) throws SQLException {
+        double maxPrice = Double.MIN_VALUE;
+        String book = "";
+        while (rs.next()) {
+            double price = rs.getDouble("price");
+            if (price > maxPrice) {
+                maxPrice = price;
+                book = rs.getString("title") + " by " + rs.getString("author");
+            }
+        }
+        System.out.println("Most expensive book: " + book + " - R" + maxPrice);
+    }
+
+    private static void calculateTotalValue(ResultSet rs) throws SQLException {
+        double total = 0;
+        while (rs.next()) {
+            total += rs.getDouble("price");
+        }
+        System.out.println("Total value of all books: R" + total);
+    }
+}
+
+
+
+
+
+Threads
+
+
+
+public class DataFlowSystem {
+
+    // Shared resources
+    private static boolean isDataCollected = false;
+    private static boolean isDataProcessed = false;
+
+    public static void main(String[] args) {
+        // Creating and starting threads
+        Thread dataCollectionThread = new DataCollectionThread();
+        Thread dataProcessingThread = new DataProcessingThread();
+        Thread dataStorageThread = new DataStorageThread();
+
+        dataCollectionThread.setPriority(Thread.MAX_PRIORITY);
+        dataProcessingThread.setPriority(Thread.NORM_PRIORITY);
+        dataStorageThread.setPriority(Thread.MIN_PRIORITY);
+
+        dataCollectionThread.start();
+        dataProcessingThread.start();
+        dataStorageThread.start();
+    }
+
+    // -----------------------------
+    // 1. Data Collection Thread
+    // -----------------------------
+    static class DataCollectionThread extends Thread {
+        @Override
+        public void run() {
+            synchronized (DataFlowSystem.class) {
+                System.out.println("Data collection started.");
+                try {
+                    Thread.sleep(1000); // Simulate time taken for data collection
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+
+                isDataCollected = true;
+                System.out.println("Data collection completed.");
+
+                // Notify waiting threads (processing)
+                DataFlowSystem.class.notifyAll();
+            }
+        }
+    }
+
+    // -----------------------------
+    // 2. Data Processing Thread
+    // -----------------------------
+    static class DataProcessingThread extends Thread {
+        @Override
+        public void run() {
+            synchronized (DataFlowSystem.class) {
+                try {
+                    // Wait until data is collected
+                    while (!isDataCollected) {
+                        System.out.println("Waiting for data collection to complete...");
+                        DataFlowSystem.class.wait();
+                    }
+
+                    System.out.println("Data processing started.");
+                    Thread.sleep(1000); // Simulate data processing time
+
+                    isDataProcessed = true;
+                    System.out.println("Data processing completed.");
+
+                    // Notify storage thread that processing is done
+                    DataFlowSystem.class.notifyAll();
+
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+
+    // -----------------------------
+    // 3. Data Storage Thread
+    // -----------------------------
+    static class DataStorageThread extends Thread {
+        @Override
+        public void run() {
+            synchronized (DataFlowSystem.class) {
+                try {
+                    // Wait until data is processed
+                    while (!isDataProcessed) {
+                        System.out.println("Waiting for data processing...");
+                        DataFlowSystem.class.wait();
+                    }
+
+                    System.out.println("Data storage started.");
+                    Thread.sleep(1000); // Simulate data storage time
+                    System.out.println("Data storage completed.");
+
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+}
 
 
 
