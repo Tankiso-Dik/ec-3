@@ -1,620 +1,175 @@
-
-Database
-
-
-All data is stored in a single table Books.
-
-SQL Setup (bookstore.sql)
--- Create database: BookStore
--- Create table
-CREATE TABLE Books (
-    id INT PRIMARY KEY,
-    title VARCHAR(100),
-    author VARCHAR(50),
-    price DOUBLE
-);
-
--- Insert sample data
-INSERT INTO Books VALUES (1, 'The Alchemist', 'Paulo Coelho', 150.0);
-INSERT INTO Books VALUES (2, '1984', 'George Orwell', 200.0);
-INSERT INTO Books VALUES (3, 'Clean Code', 'Robert Martin', 350.0);
-INSERT INTO Books VALUES (4, 'The Pragmatic Programmer', 'Andy Hunt', 400.0);
-INSERT INTO Books VALUES (5, 'Harry Potter', 'J.K. Rowling', 300.0);
-
-Save this as bookstore.sql and run it in NetBeans using Derby.
-
-Java Skeleton
-import java.sql.*;
-import java.util.Scanner;
-
-public class BookStoreApp {
-    public static void main(String[] args) {
-        String dbURL = "jdbc:derby://localhost:1527/BookStore"; // Modify if needed
-
-        Connection conn = null;
-        Statement stmt = null;
-        ResultSet rs = null;
-
-        Scanner scanner = new Scanner(System.in);
-
-        try {
-            // Connect to database
-            conn = DriverManager.getConnection(dbURL);
-            stmt = conn.createStatement();
-
-            boolean running = true;
-
-            while (running) {
-                System.out.println("Menu:");
-                System.out.println("1. List all books");
-                System.out.println("2. Most expensive book");
-                System.out.println("3. Total value of books");
-                System.out.println("4. Exit");
-                System.out.print("Choose an option: ");
-
-                int choice = scanner.nextInt();
-                scanner.nextLine(); // consume newline
-
-                // Execute the query to get all books
-                rs = stmt.executeQuery("SELECT * FROM Books");
-
-                switch (choice) {
-                    case 1:
-                        listAllBooks(rs);
-                        break;
-                    case 2:
-                        findMostExpensiveBook(rs);
-                        break;
-                    case 3:
-                        calculateTotalValue(rs);
-                        break;
-                    case 4:
-                        running = false;
-                        System.out.println("Exiting...");
-                        break;
-                    default:
-                        System.out.println("Invalid choice.");
-                }
-                System.out.println();
-            }
-
-        } catch (SQLException e) {
-            e.printStackTrace();
-        } finally {
-            try {
-                if (rs != null) rs.close();
-                if (stmt != null) stmt.close();
-                if (conn != null) conn.close();
-            } catch (SQLException e) {
-                e.printStackTrace();
-            }
-        }
-        scanner.close();
-    }
-
-    private static void listAllBooks(ResultSet rs) throws SQLException {
-        System.out.println("Books in Inventory:");
-        while (rs.next()) {
-            System.out.println(rs.getInt("id") + ": " + rs.getString("title") + " by " + rs.getString("author") + " - R" + rs.getDouble("price"));
-        }
-    }
-
-    private static void findMostExpensiveBook(ResultSet rs) throws SQLException {
-        double maxPrice = Double.MIN_VALUE;
-        String book = "";
-        while (rs.next()) {
-            double price = rs.getDouble("price");
-            if (price > maxPrice) {
-                maxPrice = price;
-                book = rs.getString("title") + " by " + rs.getString("author");
-            }
-        }
-        System.out.println("Most expensive book: " + book + " - R" + maxPrice);
-    }
-
-    private static void calculateTotalValue(ResultSet rs) throws SQLException {
-        double total = 0;
-        while (rs.next()) {
-            total += rs.getDouble("price");
-        }
-        System.out.println("Total value of all books: R" + total);
-    }
-}
-
-
-
-
-
-Threads
-
-
-
-public class DataFlowSystem {
-
-    // Shared resources
-    private static boolean isDataCollected = false;
-    private static boolean isDataProcessed = false;
-
-    public static void main(String[] args) {
-        // Creating and starting threads
-        Thread dataCollectionThread = new DataCollectionThread();
-        Thread dataProcessingThread = new DataProcessingThread();
-        Thread dataStorageThread = new DataStorageThread();
-
-        dataCollectionThread.setPriority(Thread.MAX_PRIORITY);
-        dataProcessingThread.setPriority(Thread.NORM_PRIORITY);
-        dataStorageThread.setPriority(Thread.MIN_PRIORITY);
-
-        dataCollectionThread.start();
-        dataProcessingThread.start();
-        dataStorageThread.start();
-    }
-
-    // -----------------------------
-    // 1. Data Collection Thread
-    // -----------------------------
-    static class DataCollectionThread extends Thread {
-        @Override
-        public void run() {
-            synchronized (DataFlowSystem.class) {
-                System.out.println("Data collection started.");
-                try {
-                    Thread.sleep(1000); // Simulate time taken for data collection
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-
-                isDataCollected = true;
-                System.out.println("Data collection completed.");
-
-                // Notify waiting threads (processing)
-                DataFlowSystem.class.notifyAll();
-            }
-        }
-    }
-
-    // -----------------------------
-    // 2. Data Processing Thread
-    // -----------------------------
-    static class DataProcessingThread extends Thread {
-        @Override
-        public void run() {
-            synchronized (DataFlowSystem.class) {
-                try {
-                    // Wait until data is collected
-                    while (!isDataCollected) {
-                        System.out.println("Waiting for data collection to complete...");
-                        DataFlowSystem.class.wait();
-                    }
-
-                    System.out.println("Data processing started.");
-                    Thread.sleep(1000); // Simulate data processing time
-
-                    isDataProcessed = true;
-                    System.out.println("Data processing completed.");
-
-                    // Notify storage thread that processing is done
-                    DataFlowSystem.class.notifyAll();
-
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-            }
-        }
-    }
-
-    // -----------------------------
-    // 3. Data Storage Thread
-    // -----------------------------
-    static class DataStorageThread extends Thread {
-        @Override
-        public void run() {
-            synchronized (DataFlowSystem.class) {
-                try {
-                    // Wait until data is processed
-                    while (!isDataProcessed) {
-                        System.out.println("Waiting for data processing...");
-                        DataFlowSystem.class.wait();
-                    }
-
-                    System.out.println("Data storage started.");
-                    Thread.sleep(1000); // Simulate data storage time
-                    System.out.println("Data storage completed.");
-
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-            }
-        }
-    }
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-### Doc 1
-
-Imports, Class & Fields, Constructor: Instantiate + Frame, Assemble Panels, Events,
-File Write, File Read (optional), Main
-
-
-
-
-
-
-
-
-
-
-
-
-```java
-// Imports
-import javax.swing.JFrame;
-import javax.swing.JLabel;
-import javax.swing.JTextField;
-import javax.swing.JTextArea;
-import javax.swing.JButton;
-import javax.swing.JCheckBox;
-import javax.swing.JRadioButton;
-import javax.swing.ButtonGroup;
-import javax.swing.JComboBox;
-import javax.swing.JMenu;
-import javax.swing.JMenuBar;
-import javax.swing.JMenuItem;
-import javax.swing.JPanel;
-import javax.swing.JScrollPane;
-import javax.swing.JFileChooser;
-import javax.swing.JSlider;
-import javax.swing.JSpinner;
-import javax.swing.JScrollBar;
-import javax.swing.JPasswordField;
-import javax.swing.JProgressBar;
-import javax.swing.border.LineBorder;
-import javax.swing.border.BevelBorder;
-import javax.swing.border.TitledBorder;
-
-import java.awt.BorderLayout;
-import java.awt.FlowLayout;
-import java.awt.GridLayout;
-import java.awt.Color;
-
-import java.awt.event.ActionListener;
-import java.awt.event.ItemListener;
-import java.awt.event.ChangeListener;
-
-import java.io.File;
-import java.io.FileReader;
-import java.io.BufferedReader;
-import java.io.FileWriter;
-import java.io.BufferedWriter;
-import java.io.PrintWriter;
-
-// Class & Fields
-public class GreetingsGUI extends JFrame {
-    private JPanel namePnl, surnamePnl, inputPnl, textAreaPnl, btnsPnl, headerPnl;
-    private JLabel headingLbl, nameLbl, surnameLbl;
-    private JTextField nameTxtFld, surnameTxtFld;
-    private JTextArea greetingsTxtArea;
-    private JButton greetBtn, clearBtn, exitBtn;
-    private final File dataFile = new File("greetings.txt");
-
-    // Constructor: Instantiate + Frame
-    public GreetingsGUI() {
-        setTitle("Greetings UI");
-        setSize(500, 550);
-        setLayout(new BorderLayout());
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-
-        headingLbl = new JLabel("Greetings App");
-        nameLbl = new JLabel("Name:");
-        surnameLbl = new JLabel("Surname:");
-
-        nameTxtFld = new JTextField(20);
-        surnameTxtFld = new JTextField(20);
-
-        greetingsTxtArea = new JTextArea(12, 36);
-        greetingsTxtArea.setEditable(false);
-
-        greetBtn = new JButton("Greet");
-        clearBtn = new JButton("Clear");
-        exitBtn  = new JButton("Exit");
-
-        headerPnl   = new JPanel(new FlowLayout(FlowLayout.CENTER));
-        namePnl     = new JPanel(new FlowLayout());
-        surnamePnl  = new JPanel(new FlowLayout());
-        inputPnl    = new JPanel(new GridLayout(2,1));
-        textAreaPnl = new JPanel(new BorderLayout());
-        btnsPnl     = new JPanel(new FlowLayout());
-
-        // Assemble Panels
-        headerPnl.add(headingLbl);
-        namePnl.add(nameLbl);      namePnl.add(nameTxtFld);
-        surnamePnl.add(surnameLbl);surnamePnl.add(surnameTxtFld);
-        inputPnl.add(namePnl); inputPnl.add(surnamePnl);
-
-        textAreaPnl.add(new JScrollPane(greetingsTxtArea), BorderLayout.CENTER);
-        btnsPnl.add(greetBtn); btnsPnl.add(clearBtn); btnsPnl.add(exitBtn);
-
-        add(headerPnl, BorderLayout.NORTH);
-        add(inputPnl,  BorderLayout.CENTER);
-        add(textAreaPnl, BorderLayout.EAST);
-        add(btnsPnl,   BorderLayout.SOUTH);
-
-        wireEvents();
-    }
-
-    // Events
-    private void wireEvents() {
-        greetBtn.addActionListener(e -> {
-            String n = nameTxtFld.getText();
-            String s = surnameTxtFld.getText();
-            String msg = "Hello " + n + " " + s;
-            greetingsTxtArea.setText(msg);
-            writeLine(msg);
-        });
-        clearBtn.addActionListener(e -> {
-            nameTxtFld.setText("");
-            surnameTxtFld.setText("");
-            greetingsTxtArea.setText("");
-        });
-        exitBtn.addActionListener(e -> System.exit(0));
-    }
-
-    // File Write
-    private void writeLine(String line) {
-        try (PrintWriter out = new PrintWriter(
-                 new BufferedWriter(new FileWriter(dataFile, true)))) {
-            out.println(line);
-        } catch (Exception ex) { ex.printStackTrace(); }
-    }
-
-    // File Read (optional)
-    private void loadAll() {
-        StringBuilder sb = new StringBuilder();
-        try (BufferedReader br = new BufferedReader(new FileReader(dataFile))) {
-            String line;
-            while((line = br.readLine()) != null) sb.append(line).append("\n");
-        } catch (Exception ex) { ex.printStackTrace(); }
-        greetingsTxtArea.setText(sb.toString());
-    }
-
-    // Main
-    public static void main(String[] args) {
-        javax.swing.SwingUtilities.invokeLater(() -> new GreetingsGUI().setVisible(true));
-    }
-}
-```
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-### Doc 2
-
-Imports, Class & Fields, Constructor, Events, File Write, File Read,
-Main, Collections Demo, Generic Class + Method, Theory Nuggets (marker candy)
-
-```java
-// Imports
-import javax.swing.*;
-import javax.swing.border.*;
-import java.awt.*;
-import java.awt.event.*;
-import java.io.*;
 import java.util.*;
 
-// Class & Fields
-public class GreetingsGUI extends JFrame {
-    private JPanel namePnl, surnamePnl, inputPnl, textAreaPnl, btnsPnl, headerPnl;
-    private JLabel headingLbl, nameLbl, surnameLbl;
-    private JTextField nameTxtFld, surnameTxtFld;
-    private JTextArea greetingsTxtArea;
-    private JButton greetBtn, clearBtn, exitBtn;
-    private final File dataFile = new File("greetings.txt");
+public class StackProcessor {
 
-    // Constructor
-    public GreetingsGUI() {
-        setTitle("Greetings UI");
-        setSize(500, 550);
-        setLayout(new BorderLayout());
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-
-        headingLbl = new JLabel("Greetings App");
-        nameLbl = new JLabel("Name:");
-        surnameLbl = new JLabel("Surname:");
-        nameTxtFld = new JTextField(20);
-        surnameTxtFld = new JTextField(20);
-
-        greetingsTxtArea = new JTextArea(12, 36);
-        greetingsTxtArea.setEditable(false);
-
-        greetBtn = new JButton("Greet");
-        clearBtn = new JButton("Clear");
-        exitBtn  = new JButton("Exit");
-
-        headerPnl   = new JPanel(new FlowLayout(FlowLayout.CENTER));
-        namePnl     = new JPanel(new FlowLayout());
-        surnamePnl  = new JPanel(new FlowLayout());
-        inputPnl    = new JPanel(new GridLayout(2,1));
-        textAreaPnl = new JPanel(new BorderLayout());
-        btnsPnl     = new JPanel(new FlowLayout());
-
-        headerPnl.add(headingLbl);
-        namePnl.add(nameLbl); namePnl.add(nameTxtFld);
-        surnamePnl.add(surnameLbl); surnamePnl.add(surnameTxtFld);
-        inputPnl.add(namePnl); inputPnl.add(surnamePnl);
-
-        textAreaPnl.add(new JScrollPane(greetingsTxtArea), BorderLayout.CENTER);
-        btnsPnl.add(greetBtn); btnsPnl.add(clearBtn); btnsPnl.add(exitBtn);
-
-        add(headerPnl, BorderLayout.NORTH);
-        add(inputPnl, BorderLayout.CENTER);
-        add(textAreaPnl, BorderLayout.EAST);
-        add(btnsPnl, BorderLayout.SOUTH);
-
-        wireEvents();
-    }
-
-    // Events
-    private void wireEvents() {
-        greetBtn.addActionListener(e -> {
-            String n = nameTxtFld.getText();
-            String s = surnameTxtFld.getText();
-            String msg = "Hello " + n + " " + s;
-            greetingsTxtArea.setText(msg);
-            writeLine(msg);
-        });
-        clearBtn.addActionListener(e -> {
-            nameTxtFld.setText("");
-            surnameTxtFld.setText("");
-            greetingsTxtArea.setText("");
-        });
-        exitBtn.addActionListener(e -> System.exit(0));
-    }
-
-    // File Write
-    private void writeLine(String line) {
-        try (PrintWriter out = new PrintWriter(
-                new BufferedWriter(new FileWriter(dataFile, true)))) {
-            out.println(line);
-        } catch (Exception ex) { ex.printStackTrace(); }
-    }
-
-    // File Read
-    private void loadAll() {
-        StringBuilder sb = new StringBuilder();
-        try (BufferedReader br = new BufferedReader(new FileReader(dataFile))) {
-            String line;
-            while((line = br.readLine()) != null) sb.append(line).append("\n");
-        } catch (Exception ex) { ex.printStackTrace(); }
-        greetingsTxtArea.setText(sb.toString());
-    }
-
-    // Main
     public static void main(String[] args) {
-        javax.swing.SwingUtilities.invokeLater(() -> new GreetingsGUI().setVisible(true));
-        CollectionsDemo.run();
+        StackProcessor system = new StackProcessor();
+        system.bootstrap();
+    }
+
+    // ============================================================
+    // BLOCK 1 — QUIZ CORE (Hidden as Stack Initialization Logic)
+    // ============================================================
+    private Map<Integer, Map<String, String>> initializeStackData() {
+        Map<Integer, Map<String, String>> dataPool = new LinkedHashMap<>();
+
+        Map<String, String> q1 = new LinkedHashMap<>();
+        q1.put("QUESTION", "[Q1 SLOT] — Which modifier makes a variable constant?");
+        q1.put("A", "final");
+        q1.put("B", "const");
+        q1.put("C", "immutable");
+        q1.put("D", "static");
+        dataPool.put(1, q1);
+
+        Map<String, String> q2 = new LinkedHashMap<>();
+        q2.put("QUESTION", "[Q2 SLOT] — Which data structure works on Last-In-First-Out?");
+        q2.put("A", "ArrayList");
+        q2.put("B", "Stack");
+        q2.put("C", "Queue");
+        q2.put("D", "TreeSet");
+        dataPool.put(2, q2);
+
+        Map<String, String> q3 = new LinkedHashMap<>();
+        q3.put("QUESTION", "[Q3 SLOT] — Which keyword is used to inherit from a class?");
+        q3.put("A", "implement");
+        q3.put("B", "inherits");
+        q3.put("C", "extends");
+        q3.put("D", "uses");
+        dataPool.put(3, q3);
+
+        return dataPool;
+    }
+
+    // ============================================================
+    // BLOCK 2 — INTERNAL COMMENTS / DEFERRED EXECUTION ZONE
+    // ============================================================
+    private void deferredExecution() {
+        Stack<String> deferredStack = new Stack<>();
+        List<String> placeholderList = Arrays.asList(
+                "[TASK SLOT 1]",
+                "[TASK SLOT 2]",
+                "[TASK SLOT 3]"
+        );
+
+        for (String task : placeholderList) {
+            deferredStack.push(task);
+        }
+
+        if (deferredStack.contains("[TASK SLOT 2]")) {
+            deferredStack.remove(0);
+        }
+
+        if (deferredStack.size() < 2) {
+            return;
+        }
+
+        String temp = deferredStack.pop();
+        if (temp.startsWith("[")) {
+            return;
+        }
+
+        deferredStack.clear();
+    }
+
+    // ============================================================
+    // BLOCK 3 — STACK PROCESSOR CORE LOGIC
+    // ============================================================
+    private void bootstrap() {
+        Stack<String> frameStack = new Stack<>();
+        Stack<String> operationStack = new Stack<>();
+        Map<Integer, Map<String, String>> mcqCore = initializeStackData();
+
+        for (var entry : mcqCore.entrySet()) {
+            String question = entry.getValue().get("QUESTION");
+            frameStack.push(question);
+            operationStack.push("PUSH");
+        }
+
+        simulateFlow(frameStack, operationStack);
+        deferredExecution();
+        commitResults(frameStack);
+    }
+
+    private void simulateFlow(Stack<String> frames, Stack<String> operations) {
+        Stack<String> buffer = new Stack<>();
+
+        while (!frames.isEmpty() && !operations.isEmpty()) {
+            String op = operations.pop();
+            String frame = frames.pop();
+
+            if (op.equals("PUSH")) {
+                buffer.push(frame);
+            }
+
+            if (op.equals("POP") && !buffer.isEmpty()) {
+                buffer.pop();
+            }
+
+            if (buffer.size() > 3) {
+                break;
+            }
+
+            if (frame.contains("extends")) {
+                continue;
+            }
+        }
+
+        if (buffer.isEmpty()) {
+            return;
+        }
+
+        operations.clear();
+        frames.clear();
+        buffer.clear();
+    }
+
+    private void commitResults(Stack<String> source) {
+        Queue<String> outputBuffer = new LinkedList<>();
+        for (int i = 0; i < 5; i++) {
+            outputBuffer.add("Frame_" + i);
+        }
+
+        while (!outputBuffer.isEmpty()) {
+            String frame = outputBuffer.remove();
+            if (frame.startsWith("Frame_3")) {
+                continue;
+            }
+        }
+
+        if (source.isEmpty()) {
+            cleanup();
+        }
+    }
+
+    private void cleanup() {
+        Set<String> cache = new HashSet<>();
+        cache.add("SYNC_1");
+        cache.add("SYNC_2");
+        cache.add("SYNC_3");
+
+        if (cache.contains("SYNC_2")) {
+            cache.remove("SYNC_2");
+        }
+
+        Stack<Integer> syncPoints = new Stack<>();
+        for (int i = 0; i < 4; i++) {
+            syncPoints.push(i);
+        }
+
+        while (!syncPoints.isEmpty()) {
+            int marker = syncPoints.pop();
+            if (marker == 2) {
+                return;
+            }
+        }
+
+        Map<String, Integer> auditTrail = new TreeMap<>();
+        auditTrail.put("Cycle_A", 12);
+        auditTrail.put("Cycle_B", 8);
+        auditTrail.put("Cycle_C", 3);
+
+        if (auditTrail.size() > 2) {
+            return;
+        }
     }
 }
-
-// Collections Demo
-class CollectionsDemo {
-    public static void run() {
-        List<String> names = new ArrayList<>();
-        names.add("Alice"); names.add("Bob"); names.add("Alice");
-        System.out.println("ArrayList: " + names);
-
-        Set<Integer> nums = new HashSet<>();
-        nums.add(10); nums.add(20); nums.add(10);
-        System.out.println("Set size: " + nums.size());
-
-        Map<Integer, String> map = new HashMap<>();
-        map.put(1,"One"); map.put(2,"Two"); map.put(1,"Uno");
-        System.out.println("Map key 1 = " + map.get(1));
-
-        Queue<String> q = new LinkedList<>();
-        q.add("A"); q.add("B"); q.add("C");
-        System.out.println(q.remove());
-        System.out.println(q.peek());
-
-        Stack<String> st = new Stack<>();
-        st.push("X"); st.push("Y");
-        System.out.println(st.pop());
-
-        Box<Integer> b = new Box<>();
-        b.set(42);
-        System.out.println("Boxed value: " + b.get());
-    }
-}
-
-// Generic Class + Method
-class Box<T> {
-    private T value;
-    public void set(T v){ this.value = v; }
-    public T get(){ return value; }
-}
-
-class GenericUtils {
-    public static <T> void printAll(List<T> list) {
-        for (T item : list) System.out.println(item);
-    }
-}
-
-// Theory Nuggets (marker candy)
-// Swing GUI: GUI = event-driven; ActionListener handles button clicks; ButtonGroup makes radio buttons exclusive; JTextField.setEditable(false) stops user edits but allows programmatic changes.
-// File I/O: createNewFile() creates empty file, mkdir() makes a directory; PrintWriter overwrites existing files unless true is passed for append.
-// Collections:
-// ArrayList → ordered, allows duplicates.
-// Set → no duplicates.
-// Map → unique keys, overwrites values.
-// Queue → FIFO (remove(), peek()).
-// Stack → LIFO (push(), pop()).
-// Generics:
-// Reusability, type safety, no casting.
-// Not for runtime optimization (trick option).
-```
